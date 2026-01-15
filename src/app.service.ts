@@ -253,18 +253,27 @@ export class AppService {
       const first = dailySnapshot[0];
       const last = dailySnapshot[dailySnapshot.length - 1];
 
-      // 3. CALCULATE GAINS
-      const overallexpGained = last.overallXp - first.overallXp;
+      // 1. Ensure values exist before subtracting
+      const firstXp = first.overallXp || 0;
+      const lastXp = last.overallXp || 0;
 
+      const overallexpGained = lastXp - firstXp;
+
+      // 2. Do the same for your Skills calculation
       const skillsGained = last.skills.map((s) => {
         const firstSkill = first.skills.find((fs) => fs.name === s.name);
+
+        const sXp = s.xp || 0;
+        const fXp = firstSkill?.xp || 0;
+        const sLevel = s.level || 0;
+        const fLevel = firstSkill?.level || 0;
+
         return {
           name: s.name,
-          xpGained: firstSkill ? s.xp - firstSkill.xp : 0,
-          levelGained: firstSkill ? s.level - firstSkill.level : 0,
+          xpGained: sXp - fXp,
+          levelGained: sLevel - fLevel,
         };
       });
-
       const activitiesGained = last.activities.map((a) => {
         const firstAct = first.activities.find((fa) => fa.name === a.name);
         return {
