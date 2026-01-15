@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { Player, PlayerDocument, PlayerSchema } from './users/schemas/player.schema';
+import { Player, PlayerDocument } from './users/schemas/player.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Group, GroupDocument } from './users/schemas/group.schema';
 
 export interface ServiceResponse {
@@ -36,17 +36,18 @@ export class AppService {
 
     const url = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${playerName}`;
     // Getting Player Data from ruenscape api then creating a player to the database
-    let responseData;
+    let responseData: { level: number; xp: number; skills: any[]; activities: any[]; };
     try {
       responseData = await firstValueFrom(
         this.httpService.get(url)
       ).then(res => res.data);
-    } catch (err) {
-      console.error('Failed to fetch RuneScape API:', err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Failed to fetch RuneScape API:', errorMessage);
       return { success: false, message: 'Failed to fetch RuneScape hiscores' };
     }
 
-    const existingPlayer = await this.playerModel.findOne({ username: playerName })
+
 
 
     try {
@@ -66,6 +67,10 @@ export class AppService {
         },
       );
 
+      if (!updatedPlayer) {
+        throw new Error('Failed to create or update player');
+      }
+
 
       //Snapshot Logic
       const snapshot = {
@@ -77,7 +82,7 @@ export class AppService {
       };
 
       await this.playerModel.findByIdAndUpdate(
-        { _id: updatedPlayer._id },
+        updatedPlayer._id,
         { $push: { snapshots: snapshot } },
       );
 
@@ -87,9 +92,10 @@ export class AppService {
         message: 'Player upserted successfully',
         player: updatedPlayer,
       };
-    } catch (err) {
-      console.error('Database error:', err.message);
-      return { success: false, message: 'Database error', error: err.message };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Database error:', errorMessage);
+      return { success: false, message: 'Database error', error: errorMessage };
     }
   }
 
@@ -110,26 +116,27 @@ export class AppService {
         message: 'Group found',
         groupId: group.id  // .id is a built-in getter that returns the string version
       };
-    } catch (err) {
-      return { success: false, message: 'Database error', error: err.message };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      return { success: false, message: 'Database error', error: errorMessage };
     }
   }
 
-  async createGroup(groupName: string): Promise<ServiceResponse> {
+async createGroup(groupName: string): Promise<ServiceResponse> {
     if (!groupName) {
       return { success: false, message: 'Group name is required' };
     }
 
     try {
-      const group = await this.groupModel.create({ name: groupName, players: [] })
-
+      await this.groupModel.create({ name: groupName, players: [] });
       return {
         success: true,
-        message: 'Group Create successfully',
-      }
-    } catch (err) {
-      console.error('Database error:', err.message);
-      return { success: false, message: 'Database error', error: "Group already exists" }
+        message: 'Group created successfully',
+      };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Database error:', errorMessage);
+      return { success: false, message: 'Database error', error: 'Group already exists' };
     }
   }
 
@@ -166,8 +173,8 @@ export class AppService {
 
       // FIX: Must return a ServiceResponse
       return { success: true, message: `${newPlayers.length} members added successfully` };
-    } catch (err) {
-      console.error('Database error:', err.message);
+    } catch (err: unknown) {
+      console.error('Database error:', err instanceof Error ? err.message : "unkown error");
       return { success: false, message: 'Database error', error: "Could not find group members" }
     }
   }
