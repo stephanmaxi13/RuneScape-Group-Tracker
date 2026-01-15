@@ -1,18 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { Player, PlayerDocument } from './users/schemas/player.schema';
+import { Player, PlayerDocument, PlayerSchema } from './users/schemas/player.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Group, GroupDocument } from './users/schemas/group.schema';
-import { group } from 'console';
+import { Snapshot, snapshotDocument } from './users/schemas/snapshot.schema';
 
 @Injectable()
 export class AppService {
   constructor(
     private readonly httpService: HttpService,
     @InjectModel(Player.name) private readonly playerModel: Model<PlayerDocument>,
-    @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>
+    @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>,
+    @InjectModel(Snapshot.name) private readonly snapShotModel: Model<snapshotDocument>
   ) { }
 
   async fetchAndUpsertPlayer(playerName: string): Promise<any> {
@@ -21,7 +22,7 @@ export class AppService {
     }
 
     const url = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${playerName}`;
-
+    // Getting Player Data from ruenscape api then creating a player to the database
     let responseData;
     try {
       responseData = await firstValueFrom(
@@ -32,11 +33,16 @@ export class AppService {
       return { success: false, message: 'Failed to fetch RuneScape hiscores' };
     }
 
+    const existingPlayer = await this.playerModel.findOne({ username: playerName })
+
+
     try {
-      const player = await this.playerModel.findOneAndUpdate(
-        { username: playerName }, // case-sensitive exact match
+      const updatedPlayer = await this.playerModel.findOneAndUpdate(
+        { username: playerName },
         {
           username: playerName,
+          overallLevel: responseData.level,
+          overallXp: responseData.xp,
           skills: responseData.skills,
           activities: responseData.activities,
         },
@@ -47,10 +53,26 @@ export class AppService {
         },
       );
 
+
+    //Snapshot Logic
+    const snapshot = {
+      timeStamp: new Date(),
+      overallLevel: updatedPlayer.overallLevel,
+      overallXp: updatedPlayer.overallXp,
+      skills: updatedPlayer.skills,
+      activities: updatedPlayer.activities,
+    };
+
+    await this.playerModel.findByIdAndUpdate(
+      { _id: updatedPlayer._id },
+      { $push: { snapshots: snapshot } },
+    );
+
+
       return {
         success: true,
         message: 'Player upserted successfully',
-        player: player,
+        player: updatedPlayer,
       };
     } catch (err) {
       console.error('Database error:', err.message);
@@ -104,7 +126,7 @@ export class AppService {
     }
 
     try {
-      const group = await this.groupModel.findOne({ name: groupName} ).exec();
+      const group = await this.groupModel.findOne({ name: groupName }).exec();
       if (!group) {
         return {
           success: false,
@@ -120,7 +142,7 @@ export class AppService {
 
 
       const existingUsername = group.players.map(p => p.username);
-      const newPlayers = players.filter(p=> !existingUsername.includes(p.username));
+      const newPlayers = players.filter(p => !existingUsername.includes(p.username));
 
       group.players.push(...newPlayers);
       group.save();
@@ -131,4 +153,5 @@ export class AppService {
       return { sucess: false, message: 'Database error', error: "Could not find group members" }
     }
   }
+
 }

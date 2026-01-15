@@ -5,13 +5,30 @@ import { AppService } from './app.service';
 import { HttpModule } from '@nestjs/axios';
 import { Player, PlayerSchema } from './users/schemas/player.schema';
 import { Group, GroupSchema } from './users/schemas/group.schema';
+import { Snapshot, snapshotSchema } from './users/schemas/snapshot.schema';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [HttpModule, MongooseModule.forRoot('mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.5.10'), MongooseModule.forFeature([
-    { name: Player.name, schema: PlayerSchema }, {name: Group.name, schema: GroupSchema}
-  ]),
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    HttpModule,
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get('MONGO_URI'),
+      }),
+    }),
+    MongooseModule.forFeature([
+      { name: Player.name, schema: PlayerSchema },
+      { name: Group.name, schema: GroupSchema },
+      { name: Snapshot.name, schema: snapshotSchema },
+    ]),
   ],
-  controllers: [AppController],
+  controllers: [AppController], 
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
+

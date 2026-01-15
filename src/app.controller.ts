@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import type { Request } from 'express';
 import { get } from 'axios';
+import * as playerSchema from './users/schemas/player.schema';
 
 @Controller()
 export class AppController {
@@ -9,6 +10,7 @@ export class AppController {
 
   @Get('get-player')
   getPlayerXp(@Query('username') username: string) {
+    console.info("test");
     return this.appService.fetchAndUpsertPlayer(username);
   }
 
