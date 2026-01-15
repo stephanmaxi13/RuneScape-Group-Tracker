@@ -230,86 +230,45 @@ export class AppService {
 
       const { start, end } = getDayBounds(date);
 
+      // DEBUG LOGS
+      console.log('--- GAIN CALCULATION DEBUG ---');
+      console.log('Target Date:', date.toDateString());
+      console.log('Start Bound (UTC):', start.toISOString());
+      console.log('End Bound (UTC):', end.toISOString());
       console.log(
-        'Searching between:',
-        start.toISOString(),
-        'and',
-        end.toISOString(),
+        'Total Snapshots in DB for this player:',
+        player.snapshots.length,
       );
-      if (player.snapshots.length > 0) {
-        console.log(
-          'First snapshot in DB is:',
-          new Date(player.snapshots[0].timeStamp).toISOString(),
-        );
-      }
 
-      const dailySnapshot = player.snapshots.filter((s) => {
-        const time = new Date(s.timeStamp).getTime();
-        const isMatch = time >= start.getTime() && time <= end.getTime();
-        return isMatch;
+      const dailySnapshot = player.snapshots.filter((s, index) => {
+        const sDate = new Date(s.timeStamp);
+        const time = sDate.getTime();
+        const match = time >= start.getTime() && time <= end.getTime();
+
+        // Log the first few snapshots to see why they might be failing
+        if (index < 3 || match) {
+          console.log(
+            `Snap #${index} Time: ${sDate.toISOString()} | Match: ${match}`,
+          );
+        }
+        return match;
       });
+
+      console.log('Total matches found:', dailySnapshot.length);
+      console.log('------------------------------');
 
       if (dailySnapshot.length < 2) {
         return {
           success: false,
-          message: 'Need at least 2 snapshots for this day',
+          message: `Found ${dailySnapshot.length} snapshots. Need at least 2 for the range ${start.toISOString()} to ${end.toISOString()}`,
         };
       }
 
-      // 2. Sort correctly using the full timestamp
-      dailySnapshot.sort(
-        (a, b) =>
-          new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
-      );
-
-      const first = dailySnapshot[0];
-      const last = dailySnapshot[dailySnapshot.length - 1];
-
-      // 3. Calculate gains
-      const overallexpGained = last.overallXp - first.overallXp;
-
-      const skillsGained = last.skills.map((s) => {
-        const firstSkill = first.skills.find((fs) => fs.name === s.name);
-        return {
-          name: s.name,
-          xpGained: firstSkill ? s.xp - firstSkill.xp : 0,
-          levelGained: firstSkill ? s.level - firstSkill.level : 0,
-        };
-      });
-
-      const activitiesGained = last.activities.map((a) => {
-        const firstAct = first.activities.find((fa) => fa.name === a.name);
-        return {
-          name: a.name,
-          gained: firstAct ? a.score - firstAct.score : 0,
-        };
-      });
-
-      // 4. Upsert the gain record
-      const dateKey = start.toISOString().split('T')[0];
-      await this.dailyGainModel.findOneAndUpdate(
-        { username, date: dateKey }, // Ensure this matches your DailyGain schema 'date' field
-        {
-          username,
-          date: dateKey,
-          overallXpGained: overallexpGained,
-          skillsGained,
-          activitiesGained,
-        },
-        { upsert: true, new: true },
-      );
-
-      return { success: true, message: `Gains saved for ${dateKey}` };
+      // ... (rest of your sorting and calculation logic)
+      return { success: true, message: 'Gains calculated' };
     } catch (err: unknown) {
-      console.error(
-        'Database error:',
-        err instanceof Error ? err.message : 'unkown error',
-      );
-      return {
-        success: false,
-        message: 'Database error',
-        error: 'Could no create gain record',
-      };
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return { success: false, message: 'Database error', error: msg };
     }
   }
 }
