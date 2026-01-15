@@ -28,6 +28,17 @@ export class AppController {
     );
   }
 
+  @Get('get-group-daily-gain')
+  getDailyGainsForGroup(
+    @Query('groupName') groupName: string,
+    @Query('date') date: string,
+  ): Promise<ServiceResponse> {
+    return this.appService.getDailyGainsForGroup(
+      groupName,
+      date ? new Date(date) : new Date(),
+    );
+  }
+
   @Post('create-group')
   createGroup(@Query('groupName') groupName: string): Promise<ServiceResponse> {
     return this.appService.createGroup(groupName);

@@ -308,4 +308,95 @@ export class AppService {
       return { success: false, message: 'Database error', error: msg };
     }
   }
+  async getDailyGainsForGroup(
+    groupName: string,
+    date = new Date(),
+  ): Promise<ServiceResponse> {
+    try {
+      // 1. Find the group
+      const group = await this.groupModel.findOne({ name: groupName }).exec();
+      if (!group) return { success: false, message: 'Group not found' };
+
+      const { start, end } = getDayBounds(date);
+      const dateKey = start.toISOString().split('T')[0];
+
+      // 2. Get all usernames and fetch their Player documents from the DB
+      const usernames = group.players.map((p) => p.username);
+      const players = await this.playerModel
+        .find({ username: { $in: usernames } })
+        .exec();
+
+      if (players.length === 0) {
+        return { success: false, message: 'No players found in this group' };
+      }
+
+      // 3. Process all players in parallel using Promise.all
+      const processingPromises = players.map(async (player) => {
+        // Filter snapshots for this specific player
+        const dailySnapshot = player.snapshots.filter((s) => {
+          const time = new Date(s.timeStamp).getTime();
+          return time >= start.getTime() && time <= end.getTime();
+        });
+
+        // Skip players who don't have enough data (prevents the whole group from failing)
+        if (dailySnapshot.length < 2) {
+          console.log(`Skipping ${player.username}: Not enough snapshots.`);
+          return;
+        }
+
+        // Sort snapshots
+        dailySnapshot.sort(
+          (a, b) =>
+            new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
+        );
+
+        const first = dailySnapshot[0];
+        const last = dailySnapshot[dailySnapshot.length - 1];
+
+        // Calculate Gains
+        const overallexpGained = (last.overallXp || 0) - (first.overallXp || 0);
+
+        const skillsGained = last.skills.map((s) => {
+          const firstSkill = first.skills.find((fs) => fs.name === s.name);
+          return {
+            name: s.name,
+            xpGained: (s.xp || 0) - (firstSkill?.xp || 0),
+            levelGained: (s.level || 0) - (firstSkill?.level || 0),
+          };
+        });
+
+        const activitiesGained = last.activities.map((a) => {
+          const firstAct = first.activities.find((fa) => fa.name === a.name);
+          return {
+            name: a.name,
+            gained: firstAct ? (a.score || 0) - (firstAct.score || 0) : 0,
+          };
+        });
+
+        // Save to DailyGain collection
+        return this.dailyGainModel.findOneAndUpdate(
+          { username: player.username, date: dateKey },
+          {
+            username: player.username,
+            date: dateKey,
+            overallXpGained: overallexpGained,
+            skillsGained,
+            activitiesGained,
+          },
+          { upsert: true },
+        );
+      });
+
+      await Promise.all(processingPromises);
+
+      return {
+        success: true,
+        message: `Gains processed for all available members in ${groupName} for ${dateKey}`,
+      };
+    } catch (err: unknown) {
+      console.error('Group Save Error:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return { success: false, message: 'Database error', error: msg };
+    }
+  }
 }
