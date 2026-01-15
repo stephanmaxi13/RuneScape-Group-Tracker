@@ -44,7 +44,8 @@ export class AppService {
     private readonly groupModel: Model<GroupDocument>,
     @InjectModel(DailyGain.name)
     private readonly dailyGainModel: Model<DailyGainDocument>,
-  ) {}
+    // eslint-disable-next-line prettier/prettier
+  ) { }
 
   async fetchAndUpsertPlayer(playerName: string): Promise<PlayerResponse> {
     if (!playerName) {
@@ -230,43 +231,70 @@ export class AppService {
 
       const { start, end } = getDayBounds(date);
 
-      // DEBUG LOGS
-      console.log('--- GAIN CALCULATION DEBUG ---');
-      console.log('Target Date:', date.toDateString());
-      console.log('Start Bound (UTC):', start.toISOString());
-      console.log('End Bound (UTC):', end.toISOString());
-      console.log(
-        'Total Snapshots in DB for this player:',
-        player.snapshots.length,
-      );
-
-      const dailySnapshot = player.snapshots.filter((s, index) => {
-        const sDate = new Date(s.timeStamp);
-        const time = sDate.getTime();
-        const match = time >= start.getTime() && time <= end.getTime();
-
-        // Log the first few snapshots to see why they might be failing
-        if (index < 3 || match) {
-          console.log(
-            `Snap #${index} Time: ${sDate.toISOString()} | Match: ${match}`,
-          );
-        }
-        return match;
+      // 1. FILTER & DEBUG
+      const dailySnapshot = player.snapshots.filter((s) => {
+        const time = new Date(s.timeStamp).getTime();
+        return time >= start.getTime() && time <= end.getTime();
       });
-
-      console.log('Total matches found:', dailySnapshot.length);
-      console.log('------------------------------');
 
       if (dailySnapshot.length < 2) {
         return {
           success: false,
-          message: `Found ${dailySnapshot.length} snapshots. Need at least 2 for the range ${start.toISOString()} to ${end.toISOString()}`,
+          message: `Found ${dailySnapshot.length} snapshots. Need at least 2.`,
         };
       }
 
-      // ... (rest of your sorting and calculation logic)
-      return { success: true, message: 'Gains calculated' };
+      // 2. SORT (Ensures first is earliest, last is latest)
+      dailySnapshot.sort(
+        (a, b) =>
+          new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
+      );
+
+      const first = dailySnapshot[0];
+      const last = dailySnapshot[dailySnapshot.length - 1];
+
+      // 3. CALCULATE GAINS
+      const overallexpGained = last.overallXp - first.overallXp;
+
+      const skillsGained = last.skills.map((s) => {
+        const firstSkill = first.skills.find((fs) => fs.name === s.name);
+        return {
+          name: s.name,
+          xpGained: firstSkill ? s.xp - firstSkill.xp : 0,
+          levelGained: firstSkill ? s.level - firstSkill.level : 0,
+        };
+      });
+
+      const activitiesGained = last.activities.map((a) => {
+        const firstAct = first.activities.find((fa) => fa.name === a.name);
+        return {
+          name: a.name,
+          gained: firstAct ? a.score - firstAct.score : 0,
+        };
+      });
+
+      const dateKey = start.toISOString().split('T')[0];
+
+      await this.dailyGainModel.findOneAndUpdate(
+        { username, date: dateKey }, // Query
+        {
+          username,
+          date: dateKey,
+          overallXpGained: overallexpGained,
+          skillsGained,
+          activitiesGained,
+        }, // Data to save
+        { upsert: true, new: true }, // Create if doesn't exist, return the new version
+      );
+
+      console.log('Successfully saved daily gains for:', dateKey);
+
+      return {
+        success: true,
+        message: `Gains calculated and saved for ${dateKey}`,
+      };
     } catch (err: unknown) {
+      console.error('Save Error:', err);
       const msg = err instanceof Error ? err.message : 'Unknown error';
       return { success: false, message: 'Database error', error: msg };
     }
