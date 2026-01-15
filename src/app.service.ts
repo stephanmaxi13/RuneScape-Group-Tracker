@@ -3,9 +3,23 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Player, PlayerDocument, PlayerSchema } from './users/schemas/player.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Group, GroupDocument } from './users/schemas/group.schema';
-import { Snapshot, snapshotDocument } from './users/schemas/snapshot.schema';
+
+export interface ServiceResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
+
+export interface PlayerResponse extends ServiceResponse {
+  player?: PlayerDocument;
+}
+
+export interface GroupResponse extends ServiceResponse {
+  groupId?: string;
+}
 
 @Injectable()
 export class AppService {
@@ -15,7 +29,7 @@ export class AppService {
     @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>
   ) { }
 
-  async fetchAndUpsertPlayer(playerName: string): Promise<any> {
+  async fetchAndUpsertPlayer(playerName: string): Promise<PlayerResponse> {
     if (!playerName) {
       return { success: false, message: 'Username is required' };
     }
@@ -53,19 +67,19 @@ export class AppService {
       );
 
 
-    //Snapshot Logic
-    const snapshot = {
-      timeStamp: new Date(),
-      overallLevel: updatedPlayer.overallLevel,
-      overallXp: updatedPlayer.overallXp,
-      skills: updatedPlayer.skills,
-      activities: updatedPlayer.activities,
-    };
+      //Snapshot Logic
+      const snapshot = {
+        timeStamp: new Date(),
+        overallLevel: updatedPlayer.overallLevel,
+        overallXp: updatedPlayer.overallXp,
+        skills: updatedPlayer.skills,
+        activities: updatedPlayer.activities,
+      };
 
-    await this.playerModel.findByIdAndUpdate(
-      { _id: updatedPlayer._id },
-      { $push: { snapshots: snapshot } },
-    );
+      await this.playerModel.findByIdAndUpdate(
+        { _id: updatedPlayer._id },
+        { $push: { snapshots: snapshot } },
+      );
 
 
       return {
@@ -79,7 +93,7 @@ export class AppService {
     }
   }
 
-  async getGroupId(groupName: string): Promise<any> {
+  async getGroupId(groupName: string): Promise<GroupResponse> {
     if (!groupName) {
       return { success: false, message: 'group name is required' };
     }
@@ -90,14 +104,18 @@ export class AppService {
         return { success: false, message: 'Group not found' };
       }
 
-      return { success: true, groupId: group._id };
+      // FIX: Cast the ObjectId to a string
+      return {
+        success: true,
+        message: 'Group found',
+        groupId: group.id  // .id is a built-in getter that returns the string version
+      };
     } catch (err) {
-      console.error('Database error:', err.message);
       return { success: false, message: 'Database error', error: err.message };
     }
   }
 
-  async createGroup(groupName: string): Promise<any> {
+  async createGroup(groupName: string): Promise<ServiceResponse> {
     if (!groupName) {
       return { success: false, message: 'Group name is required' };
     }
@@ -111,11 +129,11 @@ export class AppService {
       }
     } catch (err) {
       console.error('Database error:', err.message);
-      return { sucess: false, message: 'Database error', error: "Group already exists" }
+      return { success: false, message: 'Database error', error: "Group already exists" }
     }
   }
 
-  async AddMembersToGroup(groupName: string, groupMembers: string[]): Promise<any> {
+  async AddMembersToGroup(groupName: string, groupMembers: string[]): Promise<ServiceResponse> {
 
     if (!groupName) {
       return { success: false, message: 'Group name  is requred' };
@@ -144,12 +162,13 @@ export class AppService {
       const newPlayers = players.filter(p => !existingUsername.includes(p.username));
 
       group.players.push(...newPlayers);
-      group.save();
+      await group.save()
 
-
+      // FIX: Must return a ServiceResponse
+      return { success: true, message: `${newPlayers.length} members added successfully` };
     } catch (err) {
       console.error('Database error:', err.message);
-      return { sucess: false, message: 'Database error', error: "Could not find group members" }
+      return { success: false, message: 'Database error', error: "Could not find group members" }
     }
   }
 

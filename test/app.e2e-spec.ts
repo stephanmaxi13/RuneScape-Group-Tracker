@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common'; // Add this
-import request from 'supertest';             // Add this
+import { INestApplication } from '@nestjs/common'; 
+import request from 'supertest';             
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { AppModule } from './../src/app.module';
@@ -36,8 +36,6 @@ describe('AppController (e2e)', () => {
       .get('/get-group-id')
       .query({ groupName: 'TestGroup' })
       .expect(200)
-      // Note: If your AppController returns something else, 
-      // change 'Hello World!' to match your AppService return value.
       .expect((res) => {
          if (res.status === 404) console.log('Check if you have a @Get("/") in AppController');
       });
