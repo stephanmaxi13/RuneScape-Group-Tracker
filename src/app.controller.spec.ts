@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { HttpService } from '@nestjs/axios';
 import { Player } from './users/schemas/player.schema';
 import { Group } from './users/schemas/group.schema';
+import { DailyGain } from './users/schemas/daily-gains.schema';
 
 describe('AppService', () => {
   let service: AppService;
@@ -40,6 +41,10 @@ describe('AppService', () => {
         // 5. Provide the Group Model mock
         {
           provide: getModelToken(Group.name),
+          useValue: mockModel,
+        },
+        {
+          provide: getModelToken(DailyGain.name),
           useValue: mockModel,
         },
       ],
