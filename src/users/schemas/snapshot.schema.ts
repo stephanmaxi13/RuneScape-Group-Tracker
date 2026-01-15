@@ -7,7 +7,7 @@ export type snapshotDocument = HydratedDocument<Snapshot>;
 
 @Schema({ _id: false })
 export class Snapshot {
-  @Prop()
+  @Prop({ type: Date, default: Date.now })
   timeStamp: Date;
 
   @Prop()

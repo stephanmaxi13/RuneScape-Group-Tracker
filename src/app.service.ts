@@ -26,10 +26,10 @@ export interface GroupResponse extends ServiceResponse {
 
 function getDayBounds(date = new Date()) {
   const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
+  start.setUTCHours(0, 0, 0, 0); // Use UTC to match MongoDB storage
 
   const end = new Date(date);
-  end.setHours(23, 59, 59, 9999);
+  end.setUTCHours(23, 59, 59, 999);
 
   return { start, end };
 }
@@ -230,10 +230,23 @@ export class AppService {
 
       const { start, end } = getDayBounds(date);
 
-      // 1. Correct filter with getTime() for reliability
+      console.log(
+        'Searching between:',
+        start.toISOString(),
+        'and',
+        end.toISOString(),
+      );
+      if (player.snapshots.length > 0) {
+        console.log(
+          'First snapshot in DB is:',
+          new Date(player.snapshots[0].timeStamp).toISOString(),
+        );
+      }
+
       const dailySnapshot = player.snapshots.filter((s) => {
         const time = new Date(s.timeStamp).getTime();
-        return time >= start.getTime() && time <= end.getTime();
+        const isMatch = time >= start.getTime() && time <= end.getTime();
+        return isMatch;
       });
 
       if (dailySnapshot.length < 2) {
