@@ -12,8 +12,7 @@ export class AppService {
   constructor(
     private readonly httpService: HttpService,
     @InjectModel(Player.name) private readonly playerModel: Model<PlayerDocument>,
-    @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>,
-    @InjectModel(Snapshot.name) private readonly snapShotModel: Model<snapshotDocument>
+    @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>
   ) { }
 
   async fetchAndUpsertPlayer(playerName: string): Promise<any> {

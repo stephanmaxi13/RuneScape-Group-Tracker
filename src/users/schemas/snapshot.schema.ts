@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Player } from './player.schema';
 import { Skill } from './skill.schema';
 import { Activities } from './activities.schema';
 
@@ -25,4 +24,4 @@ export class Snapshot {
   activities: Activities[];
 }
 
-export const snapshotSchema = SchemaFactory.createForClass(Snapshot);
+export const snapShotSchema = SchemaFactory.createForClass(Snapshot);
