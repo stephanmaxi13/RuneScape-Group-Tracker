@@ -39,8 +39,8 @@ export class AppService {
     let responseData: { level: number; xp: number; skills: any[]; activities: any[]; };
     try {
       responseData = await firstValueFrom(
-        this.httpService.get(url)
-      ).then(res => res.data);
+        this.httpService.get<any>(url)
+      ).then(res => res.data as { level: number; xp: number; skills: any[]; activities: any[]; });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('Failed to fetch RuneScape API:', errorMessage);

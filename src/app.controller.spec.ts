@@ -2,10 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { AppService } from './app.service';
 import { Snapshot } from './users/schemas/snapshot.schema';
+import { Model } from 'mongoose';
 
 describe('AppService', () => {
   let service: AppService;
-  let model: any;
+  let _model: Model<Snapshot>;
 
   const mockSnapshotModel = {
     new: jest.fn().mockResolvedValue({}),
@@ -27,7 +28,7 @@ describe('AppService', () => {
     }).compile();
 
     service = module.get<AppService>(AppService);
-    model = module.get(getModelToken(Snapshot.name));
+    _model = module.get(getModelToken(Snapshot.name));
   });
 
   it('should be defined', () => {
