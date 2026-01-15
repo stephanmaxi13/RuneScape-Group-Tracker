@@ -5,6 +5,10 @@ import { Player, PlayerDocument } from './users/schemas/player.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Group, GroupDocument } from './users/schemas/group.schema';
+import {
+  DailyGain,
+  DailyGainDocument,
+} from './users/schemas/daily-gains.schema';
 
 export interface ServiceResponse {
   success: boolean;
@@ -20,13 +24,26 @@ export interface GroupResponse extends ServiceResponse {
   groupId?: string;
 }
 
+function getDayBounds(date = new Date()) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 9999);
+
+  return { start, end };
+}
+
 @Injectable()
 export class AppService {
   constructor(
     private readonly httpService: HttpService,
     @InjectModel(Player.name)
     private readonly playerModel: Model<PlayerDocument>,
-    @InjectModel(Group.name) private readonly groupModel: Model<GroupDocument>,
+    @InjectModel(Group.name)
+    private readonly groupModel: Model<GroupDocument>,
+    @InjectModel(DailyGain.name)
+    private readonly dailyGainModel: Model<DailyGainDocument>,
   ) {}
 
   async fetchAndUpsertPlayer(playerName: string): Promise<PlayerResponse> {
@@ -199,6 +216,86 @@ export class AppService {
         success: false,
         message: 'Database error',
         error: 'Could not find group members',
+      };
+    }
+  }
+
+  async getDailyGains(
+    username: string,
+    date = new Date(),
+  ): Promise<ServiceResponse> {
+    try {
+      const player = await this.playerModel.findOne({ username }).exec();
+      if (!player) return { success: false, message: 'Player not found' };
+
+      const { start, end } = getDayBounds(date);
+
+      // 1. Correct filter with getTime() for reliability
+      const dailySnapshot = player.snapshots.filter((s) => {
+        const time = new Date(s.timeStamp).getTime();
+        return time >= start.getTime() && time <= end.getTime();
+      });
+
+      if (dailySnapshot.length < 2) {
+        return {
+          success: false,
+          message: 'Need at least 2 snapshots for this day',
+        };
+      }
+
+      // 2. Sort correctly using the full timestamp
+      dailySnapshot.sort(
+        (a, b) =>
+          new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
+      );
+
+      const first = dailySnapshot[0];
+      const last = dailySnapshot[dailySnapshot.length - 1];
+
+      // 3. Calculate gains
+      const overallexpGained = last.overallXp - first.overallXp;
+
+      const skillsGained = last.skills.map((s) => {
+        const firstSkill = first.skills.find((fs) => fs.name === s.name);
+        return {
+          name: s.name,
+          xpGained: firstSkill ? s.xp - firstSkill.xp : 0,
+          levelGained: firstSkill ? s.level - firstSkill.level : 0,
+        };
+      });
+
+      const activitiesGained = last.activities.map((a) => {
+        const firstAct = first.activities.find((fa) => fa.name === a.name);
+        return {
+          name: a.name,
+          gained: firstAct ? a.score - firstAct.score : 0,
+        };
+      });
+
+      // 4. Upsert the gain record
+      const dateKey = start.toISOString().split('T')[0];
+      await this.dailyGainModel.findOneAndUpdate(
+        { username, date: dateKey }, // Ensure this matches your DailyGain schema 'date' field
+        {
+          username,
+          date: dateKey,
+          overallXpGained: overallexpGained,
+          skillsGained,
+          activitiesGained,
+        },
+        { upsert: true, new: true },
+      );
+
+      return { success: true, message: `Gains saved for ${dateKey}` };
+    } catch (err: unknown) {
+      console.error(
+        'Database error:',
+        err instanceof Error ? err.message : 'unkown error',
+      );
+      return {
+        success: false,
+        message: 'Database error',
+        error: 'Could no create gain record',
       };
     }
   }

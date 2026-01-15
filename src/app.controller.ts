@@ -17,6 +17,17 @@ export class AppController {
     return this.appService.getGroupId(groupName);
   }
 
+  @Get('get-daily-gain')
+  getDailyGains(
+    @Query('username') username: string,
+    @Query('date') date: string,
+  ): Promise<ServiceResponse> {
+    return this.appService.getDailyGains(
+      username,
+      date ? new Date(date) : new Date(),
+    );
+  }
+
   @Post('create-group')
   createGroup(@Query('groupName') groupName: string): Promise<ServiceResponse> {
     return this.appService.createGroup(groupName);
