@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Skill, SkillSchema } from './skill.schema';
 import { Activities, ActivitySchema } from './activities.schema';
-import { Snapshot, snapshotSchema } from './snapshot.schema';
+import { Snapshot, snapShotSchema } from './snapshot.schema';
 
 
 export type PlayerDocument = HydratedDocument<Player>;
@@ -25,7 +25,7 @@ export class Player {
   @Prop([ActivitySchema])
   activities: Activities[];
 
-  @Prop({ type: [snapshotSchema], default: [] })
+  @Prop({ type: [snapShotSchema], default: [] })
   snapshots: Snapshot[];
 
 }
