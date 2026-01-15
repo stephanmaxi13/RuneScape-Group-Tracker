@@ -1,15 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { AppService } from './app.service';
-import { Snapshot } from './users/schemas/snapshot.schema';
+import { HttpService } from '@nestjs/axios';
+import { Player } from './users/schemas/player.schema';
+import { Group } from './users/schemas/group.schema';
 
 describe('AppService', () => {
   let service: AppService;
 
-  const mockSnapshotModel = {
-    new: jest.fn().mockResolvedValue({}),
-    constructor: jest.fn().mockResolvedValue({}),
+  // 1. Create a mock for the HttpService
+  const mockHttpService = {
+    get: jest.fn(),
+  };
+
+  // 2. Create a generic mock for Mongoose Models
+  const mockModel = {
     find: jest.fn(),
+    findOne: jest.fn(),
+    findOneAndUpdate: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
     create: jest.fn(),
     exec: jest.fn(),
   };
@@ -18,9 +27,20 @@ describe('AppService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppService,
+        // 3. Provide the HttpService mock
         {
-          provide: getModelToken(Snapshot.name),
-          useValue: mockSnapshotModel,
+          provide: HttpService,
+          useValue: mockHttpService,
+        },
+        // 4. Provide the Player Model mock
+        {
+          provide: getModelToken(Player.name),
+          useValue: mockModel,
+        },
+        // 5. Provide the Group Model mock
+        {
+          provide: getModelToken(Group.name),
+          useValue: mockModel,
         },
       ],
     }).compile();
