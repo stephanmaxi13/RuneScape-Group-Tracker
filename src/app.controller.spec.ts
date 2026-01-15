@@ -1,22 +1,36 @@
-// import { Test, TestingModule } from '@nestjs/testing';
-// import { AppController } from './app.controller';
-// import { AppService } from './app.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
+import { AppService } from './app.service';
+import { Snapshot } from './users/schemas/snapshot.schema';
 
-// describe('AppController', () => {
-//   let appController: AppController;
+describe('AppService', () => {
+  let service: AppService;
+  let model: any;
 
-//   beforeEach(async () => {
-//     const app: TestingModule = await Test.createTestingModule({
-//       controllers: [AppController],
-//       providers: [AppService],
-//     }).compile();
+  const mockSnapshotModel = {
+    new: jest.fn().mockResolvedValue({}),
+    constructor: jest.fn().mockResolvedValue({}),
+    find: jest.fn(),
+    create: jest.fn(),
+    exec: jest.fn(),
+  };
 
-//     appController = app.get<AppController>(AppController);
-//   });
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AppService,
+        {
+          provide: getModelToken(Snapshot.name),
+          useValue: mockSnapshotModel,
+        },
+      ],
+    }).compile();
 
-//   describe('root', () => {
-//     it('should return "Hello World!"', () => {
-//       expect(appController.getHello()).toBe('Hello World!');
-//     });
-//   });
-// });
+    service = module.get<AppService>(AppService);
+    model = module.get(getModelToken(Snapshot.name));
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+});
