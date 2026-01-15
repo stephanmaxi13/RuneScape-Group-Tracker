@@ -6,7 +6,6 @@ import { Model } from 'mongoose';
 
 describe('AppService', () => {
   let service: AppService;
-  let _model: Model<Snapshot>;
 
   const mockSnapshotModel = {
     new: jest.fn().mockResolvedValue({}),
@@ -28,7 +27,6 @@ describe('AppService', () => {
     }).compile();
 
     service = module.get<AppService>(AppService);
-    _model = module.get(getModelToken(Snapshot.name));
   });
 
   it('should be defined', () => {
