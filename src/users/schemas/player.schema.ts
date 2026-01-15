@@ -4,12 +4,10 @@ import { Skill, SkillSchema } from './skill.schema';
 import { Activities, ActivitySchema } from './activities.schema';
 import { Snapshot, snapShotSchema } from './snapshot.schema';
 
-
 export type PlayerDocument = HydratedDocument<Player>;
 
 @Schema()
 export class Player {
-
   @Prop({ required: true, unique: true, index: true })
   username: string;
 
@@ -27,7 +25,6 @@ export class Player {
 
   @Prop({ type: [snapShotSchema], default: [] })
   snapshots: Snapshot[];
-
 }
 
 export const PlayerSchema = SchemaFactory.createForClass(Player);

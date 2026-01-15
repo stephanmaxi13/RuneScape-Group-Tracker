@@ -3,7 +3,6 @@ import { HydratedDocument } from 'mongoose';
 import { Skill } from './skill.schema';
 import { Activities } from './activities.schema';
 
-
 export type snapshotDocument = HydratedDocument<Snapshot>;
 
 @Schema({ _id: false })

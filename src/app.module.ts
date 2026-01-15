@@ -35,4 +35,3 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [AppService], //Contains business logic and DB intergrations
 })
 export class AppModule {}
-
