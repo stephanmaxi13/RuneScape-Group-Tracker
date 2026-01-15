@@ -1,4 +1,4 @@
-name: NestJS CI
+name: Runescape Tracker Backend CI
 
 on:
   push:
@@ -27,3 +27,7 @@ jobs:
 
       - name: Run Tests
         run: npm test
+
+      - name: Trigger Render Deploy
+        if: success()
+        run: curl -X POST ${{ secrets.https://api.render.com/deploy/srv-d5khtu94tr6s73av36eg?key=C8Omgh3Tgt8 }}
