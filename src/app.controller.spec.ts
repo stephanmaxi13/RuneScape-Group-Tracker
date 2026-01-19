@@ -1,9 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { AppService } from './app.service';
 import { HttpService } from '@nestjs/axios';
 import { Player } from './players/schemas/player.schema';
-import { Group } from './groups/schemas/group.schema';
 import { Gains } from './groups/schemas/gains.schema';
 import { PlayersService } from './players/players.service';
 
@@ -28,7 +26,7 @@ describe('PlayersService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AppService,
+        PlayersService,
         // 3. Provide the HttpService mock
         {
           provide: HttpService,
@@ -37,11 +35,6 @@ describe('PlayersService', () => {
         // 4. Provide the Player Model mock
         {
           provide: getModelToken(Player.name),
-          useValue: mockModel,
-        },
-        // 5. Provide the Group Model mock
-        {
-          provide: getModelToken(Group.name),
           useValue: mockModel,
         },
         {
