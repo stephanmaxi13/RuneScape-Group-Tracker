@@ -23,7 +23,7 @@ interface ActivitySnapshot {
   score: number; // Finished this property
 }
 
-interface AggregationResult {
+export interface AggregationResult {
   username: string;
   first: {
     overallXp: number;
@@ -125,7 +125,8 @@ export class GroupService {
       }
 
       // 1. Use the NEW service method (this clears the .find red line)
-      const players = await this.playerService.findManyByNames(groupMembers);
+      const players: PlayerDocument[] =
+        await this.playerService.findManyByNames(groupMembers);
 
       if (players.length === 0) {
         return { success: false, message: 'No matching players found' };
@@ -185,35 +186,36 @@ export class GroupService {
       console.log(`Checking ${period} gains for ${groupName}`);
       console.log(`Start: ${start.toISOString()} | End: ${end.toISOString()}`);
 
-      const results = await this.playerService.aggregatePlayers([
-        { $match: { username: { $in: usernames } } },
-        {
-          $project: {
-            username: 1,
-            filteredSnapshots: {
-              $filter: {
-                input: '$snapshots',
-                as: 's',
-                cond: {
-                  $and: [
-                    { $gte: [{ $toDate: '$$s.timeStamp' }, start] },
-                    { $lte: [{ $toDate: '$$s.timeStamp' }, end] },
-                  ],
+      const results: AggregationResult[] =
+        await this.playerService.aggregatePlayers([
+          { $match: { username: { $in: usernames } } },
+          {
+            $project: {
+              username: 1,
+              filteredSnapshots: {
+                $filter: {
+                  input: '$snapshots',
+                  as: 's',
+                  cond: {
+                    $and: [
+                      { $gte: [{ $toDate: '$$s.timeStamp' }, start] },
+                      { $lte: [{ $toDate: '$$s.timeStamp' }, end] },
+                    ],
+                  },
                 },
               },
             },
           },
-        },
-        // This is the stage that usually causes "No players had enough snapshots"
-        { $match: { $expr: { $gte: [{ $size: '$filteredSnapshots' }, 2] } } },
-        {
-          $project: {
-            username: 1,
-            first: { $arrayElemAt: ['$filteredSnapshots', 0] },
-            last: { $arrayElemAt: ['$filteredSnapshots', -1] },
+          // This is the stage that usually causes "No players had enough snapshots"
+          { $match: { $expr: { $gte: [{ $size: '$filteredSnapshots' }, 2] } } },
+          {
+            $project: {
+              username: 1,
+              first: { $arrayElemAt: ['$filteredSnapshots', 0] },
+              last: { $arrayElemAt: ['$filteredSnapshots', -1] },
+            },
           },
-        },
-      ]);
+        ]);
 
       if (!results || results.length === 0) {
         return {
