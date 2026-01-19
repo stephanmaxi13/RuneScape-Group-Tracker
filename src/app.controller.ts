@@ -17,23 +17,27 @@ export class AppController {
     return this.appService.getGroupId(groupName);
   }
 
-  @Get('get-daily-gain')
-  getDailyGains(
+  @Get('get-gains')
+  getGains(
+    @Query('period') period: string,
     @Query('username') username: string,
     @Query('date') date: string,
   ): Promise<ServiceResponse> {
-    return this.appService.getDailyGains(
+    return this.appService.getGains(
+      period,
       username,
       date ? new Date(date) : new Date(),
     );
   }
 
-  @Get('get-group-daily-gain')
-  getDailyGainsForGroup(
+  @Get('get-group-gains')
+  getGainsForGroup(
+    @Query('period') period: string,
     @Query('groupName') groupName: string,
     @Query('date') date: string,
   ): Promise<ServiceResponse> {
-    return this.appService.getDailyGainsForGroup(
+    return this.appService.getGainsForGroup(
+      period,
       groupName,
       date ? new Date(date) : new Date(),
     );

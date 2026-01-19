@@ -7,7 +7,7 @@ import { Player, PlayerSchema } from './users/schemas/player.schema';
 import { Group, GroupSchema } from './users/schemas/group.schema';
 import { Snapshot, snapShotSchema } from './users/schemas/snapshot.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DailyGain, DailyGainSchema } from './users/schemas/daily-gains.schema';
+import { Gains, GainsSchema } from './users/schemas/gains.schema';
 
 @Module({
   imports: [
@@ -30,7 +30,7 @@ import { DailyGain, DailyGainSchema } from './users/schemas/daily-gains.schema';
       { name: Player.name, schema: PlayerSchema },
       { name: Group.name, schema: GroupSchema },
       { name: Snapshot.name, schema: snapShotSchema },
-      { name: DailyGain.name, schema: DailyGainSchema },
+      { name: Gains.name, schema: GainsSchema },
     ]),
   ],
   controllers: [AppController], //Handles HTTP request

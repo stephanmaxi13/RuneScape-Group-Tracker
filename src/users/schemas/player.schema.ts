@@ -6,7 +6,9 @@ import { Snapshot, snapShotSchema } from './snapshot.schema';
 
 export type PlayerDocument = HydratedDocument<Player>;
 
-@Schema()
+@Schema({
+  collation: { locale: 'en', strength: 2 }, // Strength 2 means ignore case
+})
 export class Player {
   @Prop({ required: true, unique: true, index: true })
   username: string;

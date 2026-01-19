@@ -5,10 +5,150 @@ import { Player, PlayerDocument } from './users/schemas/player.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Group, GroupDocument } from './users/schemas/group.schema';
-import {
-  DailyGain,
-  DailyGainDocument,
-} from './users/schemas/daily-gains.schema';
+import { Gains, GainsDocument } from './users/schemas/gains.schema';
+
+interface RawSkill {
+  rank: number;
+  level: number;
+  xp: number;
+}
+
+interface RawActivity {
+  score: number;
+  rank: number;
+}
+
+const OSRS_ACTIVITIES = [
+  'League Points',
+  'Deadman Points',
+  'Bounty Hunter - Hunter',
+  'Bounty Hunter - Rogue',
+  'Bounty Hunter (Legacy) - Hunter',
+  'Bounty Hunter (Legacy) - Rogue',
+  'Clue Scrolls (all)',
+  'Clue Scrolls (beginner)',
+  'Clue Scrolls (easy)',
+  'Clue Scrolls (medium)',
+  'Clue Scrolls (hard)',
+  'Clue Scrolls (elite)',
+  'Clue Scrolls (master)',
+  'LMS - Rank',
+  'PvP Arena - Rank',
+  'Soul Wars Zeal',
+  'Rifts closed',
+  'Abyssal Sire',
+  'Alchemical Hydra',
+  'Artio',
+  'Callisto',
+  "Calvar'ion",
+  'Cerberus',
+  'Chambers of Xeric',
+  'Chambers of Xeric: Challenge Mode',
+  'Chaos Elemental',
+  'Chaos Fanatic',
+  'Commander Zilyana',
+  'Corporeal Beast',
+  'Crazy Archaeologist',
+  'Dagannoth Prime',
+  'Dagannoth Rex',
+  'Dagannoth Supreme',
+  'Deranged Archaeologist',
+  'General Graardor',
+  'Giant Mole',
+  'Grotesque Guardians',
+  'Hespori',
+  'Kalphite Queen',
+  'King Black Dragon',
+  'Kraken',
+  "Kree'Arra",
+  'Kril Tsutsaroth',
+  'Mimic',
+  'Nex',
+  'Nightmare',
+  "Phosani's Nightmare",
+  'Obor',
+  'Phantom Muspah',
+  'Sarachnis',
+  'Scorpia',
+  'Scurrius',
+  'Skotizo',
+  'Spindel',
+  'Tempoross',
+  'The Gauntlet',
+  'The Corrupted Gauntlet',
+  'The Leviathan',
+  'The Whisperer',
+  'The Warden',
+  'The Duke Sucellus',
+  'The Vardorvis',
+  'The Nightmare',
+  'Thermonuclear Smoke Devil',
+  'ToA',
+  'ToA: Expert Mode',
+  'ToB',
+  'ToB: Hard Mode',
+  'TzKal-Zuk',
+  'TzTok-Jad',
+  'Vardorvis',
+  'Venenatis',
+  "Vet'ion",
+  'Vorkath',
+  'Wintertodt',
+  'Zalcano',
+  'Zulrah',
+];
+
+const OSRS_SKILLS = [
+  'Overall',
+  'Attack',
+  'Defence',
+  'Strength',
+  'Hitpoints',
+  'Ranged',
+  'Prayer',
+  'Magic',
+  'Cooking',
+  'Woodcutting',
+  'Fletching',
+  'Fishing',
+  'Firemaking',
+  'Crafting',
+  'Smithing',
+  'Mining',
+  'Herblore',
+  'Agility',
+  'Thieving',
+  'Slayer',
+  'Farming',
+  'Runecraft',
+  'Hunter',
+  'Construction',
+];
+
+interface SkillSnapshot {
+  name: string;
+  xp: number;
+  level: number;
+}
+
+interface ActivitySnapshot {
+  name: string;
+  score: number; // Finished this property
+}
+
+interface AggregationResult {
+  username: string;
+  first: {
+    overallXp: number;
+    skills: SkillSnapshot[];
+    activities: ActivitySnapshot[];
+  };
+  last: {
+    overallXp: number;
+    skills: SkillSnapshot[];
+    activities: ActivitySnapshot[];
+  };
+}
 
 export interface ServiceResponse {
   success: boolean;
@@ -24,11 +164,48 @@ export interface GroupResponse extends ServiceResponse {
   groupId?: string;
 }
 
-function getDayBounds(date = new Date()) {
+function getLastDayOfMonthUTC(year: number, month: number): Date {
+  // We use month + 1 and day 0 to get the last day of 'month'
+  return new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+}
+
+function getDayBounds(date = new Date()): { start: Date; end: Date } {
   const start = new Date(date);
   start.setUTCHours(0, 0, 0, 0); // Use UTC to match MongoDB storage
 
   const end = new Date(date);
+  end.setUTCHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+function getMonthlyBounds(date: Date = new Date()): { start: Date; end: Date } {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+
+  // Start of the month (Day 1)
+  const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+
+  // End of the month (using your helper logic)
+  const end = getLastDayOfMonthUTC(year, month);
+
+  return { start, end };
+}
+
+function getWeeklyBounds(date = new Date()): { start: Date; end: Date } {
+  //Get the day of the week
+  const start = new Date(date.getTime());
+  //How to find to monday
+  // if it is sunday then day = 0  and we need to go back 6 days
+  const day = start.getUTCDay();
+
+  const differneceToMonday = day === 0 ? 6 : day - 1;
+  //set the start Date to the first day of the week
+  start.setUTCDate(start.getUTCDate() - differneceToMonday);
+  start.setUTCHours(0, 0, 0, 0); // Use UTC to match MongoDB storage
+
+  const end = new Date(date);
+  //Start is the first day of the week so we can just 6
+  end.setUTCDate(start.getUTCDate() + 6);
   end.setUTCHours(23, 59, 59, 999);
 
   return { start, end };
@@ -42,8 +219,8 @@ export class AppService {
     private readonly playerModel: Model<PlayerDocument>,
     @InjectModel(Group.name)
     private readonly groupModel: Model<GroupDocument>,
-    @InjectModel(DailyGain.name)
-    private readonly dailyGainModel: Model<DailyGainDocument>,
+    @InjectModel(Gains.name)
+    private readonly GainsModel: Model<GainsDocument>,
     // eslint-disable-next-line prettier/prettier
   ) { }
 
@@ -77,47 +254,56 @@ export class AppService {
     }
 
     try {
+      // 1. Map skills with names
+      const mappedSkills = responseData.skills.map(
+        (skill: RawSkill, index: number) => ({
+          name: OSRS_SKILLS[index] || `Unknown_Skill_${index}`,
+          rank: skill.rank,
+          level: skill.level,
+          xp: skill.xp,
+        }),
+      );
+
+      // Map Activities to include names
+      const mappedActivities = responseData.activities.map(
+        (act: RawActivity, index: number) => ({
+          name: OSRS_ACTIVITIES[index] || `Unknown_Activity_${index}`,
+          score: act.score,
+          rank: act.rank,
+        }),
+      );
+      // 2. Prepare the snapshot object
+      const newSnapshot = {
+        timeStamp: new Date(),
+        overallLevel: responseData.level,
+        overallXp: responseData.xp,
+        skills: mappedSkills,
+        activities: mappedActivities,
+      };
+
+      // 3. Update player AND push snapshot in ONE call
       const updatedPlayer = await this.playerModel.findOneAndUpdate(
         { username: playerName },
         {
-          username: playerName,
-          overallLevel: responseData.level,
-          overallXp: responseData.xp,
-          skills: responseData.skills,
-          activities: responseData.activities,
+          $set: {
+            username: playerName,
+            overallLevel: responseData.level,
+            overallXp: responseData.xp,
+            skills: mappedSkills,
+            activities: mappedActivities,
+          },
+          $push: { snapshots: newSnapshot }, // This is the magic line
         },
-        {
-          upsert: true,
-          new: true,
-          setDefaultsOnInsert: true,
-        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
       );
-
-      if (!updatedPlayer) {
-        throw new Error('Failed to create or update player');
-      }
-
-      //Snapshot Logic
-      const snapshot = {
-        timeStamp: new Date(),
-        overallLevel: updatedPlayer.overallLevel,
-        overallXp: updatedPlayer.overallXp,
-        skills: updatedPlayer.skills,
-        activities: updatedPlayer.activities,
-      };
-
-      await this.playerModel.findByIdAndUpdate(updatedPlayer._id, {
-        $push: { snapshots: snapshot },
-      });
 
       return {
         success: true,
-        message: 'Player upserted successfully',
+        message: 'Player and Snapshot updated successfully',
         player: updatedPlayer,
       };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Database error:', errorMessage);
       return { success: false, message: 'Database error', error: errorMessage };
     }
   }
@@ -221,7 +407,8 @@ export class AppService {
     }
   }
 
-  async getDailyGains(
+  async getGains(
+    period: string, // 'daily', 'weekly', or 'monthly'
     username: string,
     date = new Date(),
   ): Promise<ServiceResponse> {
@@ -229,135 +416,250 @@ export class AppService {
       const player = await this.playerModel.findOne({ username }).exec();
       if (!player) return { success: false, message: 'Player not found' };
 
-      const { start, end } = getDayBounds(date);
+      // 1. Determine bounds based on the period string
+      let bounds: { start: Date; end: Date };
+      if (period === 'monthly') bounds = getMonthlyBounds(date);
+      else if (period === 'weekly') bounds = getWeeklyBounds(date);
+      else bounds = getDayBounds(date);
 
-      // 1. FILTER & DEBUG
-      const dailySnapshot = player.snapshots.filter((s) => {
+      const { start, end } = bounds;
+
+      // 2. Filter snapshots within those bounds
+      const filteredSnapshots = player.snapshots.filter((s) => {
         const time = new Date(s.timeStamp).getTime();
         return time >= start.getTime() && time <= end.getTime();
       });
 
-      if (dailySnapshot.length < 2) {
+      if (filteredSnapshots.length < 2) {
         return {
           success: false,
-          message: `Found ${dailySnapshot.length} snapshots. Need at least 2.`,
+          message: `Found ${filteredSnapshots.length} snapshots for ${period}. Need at least 2.`,
         };
       }
 
-      // 2. SORT (Ensures first is earliest, last is latest)
-      dailySnapshot.sort(
+      // 3. Sort and pick start/end points
+      filteredSnapshots.sort(
         (a, b) =>
           new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
       );
 
-      const first = dailySnapshot[0];
-      const last = dailySnapshot[dailySnapshot.length - 1];
+      const first = filteredSnapshots[0];
+      const last = filteredSnapshots[filteredSnapshots.length - 1];
 
-      // 1. Ensure values exist before subtracting
-      const firstXp = first.overallXp || 0;
-      const lastXp = last.overallXp || 0;
+      // 4. Calculate Differences
+      const overallexpGained = (last.overallXp || 0) - (first.overallXp || 0);
 
-      const overallexpGained = lastXp - firstXp;
-
-      // 2. Do the same for your Skills calculation
       const skillsGained = last.skills.map((s) => {
         const firstSkill = first.skills.find((fs) => fs.name === s.name);
-
-        const sXp = s.xp || 0;
-        const fXp = firstSkill?.xp || 0;
-        const sLevel = s.level || 0;
-        const fLevel = firstSkill?.level || 0;
-
         return {
           name: s.name,
-          xpGained: sXp - fXp,
-          levelGained: sLevel - fLevel,
+          xp: (s.xp || 0) - (firstSkill?.xp || 0),
+          level: (s.level || 0) - (firstSkill?.level || 0),
         };
       });
+
       const activitiesGained = last.activities.map((a) => {
         const firstAct = first.activities.find((fa) => fa.name === a.name);
         return {
           name: a.name,
-          gained: firstAct ? a.score - firstAct.score : 0,
+          score: firstAct ? (a.score || 0) - (firstAct.score || 0) : 0,
         };
       });
 
+      // Use the start of the period as the unique Date Key
       const dateKey = start.toISOString().split('T')[0];
 
-      await this.dailyGainModel.findOneAndUpdate(
-        { username, date: dateKey }, // Query
+      // 5. Save to the unified Gains collection
+      await this.GainsModel.findOneAndUpdate(
+        { username, date: dateKey, period: period },
         {
           username,
           date: dateKey,
+          period: period,
           overallXpGained: overallexpGained,
           skillsGained,
           activitiesGained,
-        }, // Data to save
-        { upsert: true, new: true }, // Create if doesn't exist, return the new version
+        },
+        { upsert: true, new: true },
       );
-
-      console.log('Successfully saved daily gains for:', dateKey);
 
       return {
         success: true,
-        message: `Gains calculated and saved for ${dateKey}`,
+        message: `${period} gains calculated for ${username} (${dateKey})`,
       };
     } catch (err: unknown) {
-      console.error('Save Error:', err);
       const msg = err instanceof Error ? err.message : 'Unknown error';
       return { success: false, message: 'Database error', error: msg };
     }
   }
-  async getDailyGainsForGroup(
+
+  // //update paramter to take in daily, weekly and monthly
+  // async getGainsForGroup(
+  //   // id: number,
+  //   groupName: string,
+  //   date = new Date(),
+  // ): Promise<ServiceResponse> {
+  //   try {
+  //     // 1. Find the group
+  //     const group = await this.groupModel.findOne({ name: groupName }).exec();
+  //     if (!group) return { success: false, message: 'Group not found' };
+
+  //     const { start, end } = getDayBounds(date);
+  //     const dateKey = start.toISOString().split('T')[0];
+
+  //     // 2. Get all usernames and fetch their Player documents from the DB
+  //     const usernames = group.players.map((p) => p.username);
+  //     const players = await this.playerModel
+  //       .find({ username: { $in: usernames } })
+  //       .exec();
+
+  //     if (players.length === 0) {
+  //       return { success: false, message: 'No players found in this group' };
+  //     }
+
+  //     // 3. Process all players in parallel using Promise.all
+  //     const processingPromises = players.map(async (player) => {
+  //       // Filter snapshots for this specific player
+  //       const dailySnapshot = player.snapshots.filter((s) => {
+  //         const time = new Date(s.timeStamp).getTime();
+  //         return time >= start.getTime() && time <= end.getTime();
+  //       });
+
+  //       // Skip players who don't have enough data (prevents the whole group from failing)
+  //       if (dailySnapshot.length < 2) {
+  //         console.log(`Skipping ${player.username}: Not enough snapshots.`);
+  //         return;
+  //       }
+
+  //       // Sort snapshots
+  //       dailySnapshot.sort(
+  //         (a, b) =>
+  //           new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
+  //       );
+
+  //       const first = dailySnapshot[0];
+  //       const last = dailySnapshot[dailySnapshot.length - 1];
+
+  //       // Calculate Gains
+  //       const overallexpGained = (last.overallXp || 0) - (first.overallXp || 0);
+
+  //       const skillsGained = last.skills.map((s) => {
+  //         const firstSkill = first.skills.find((fs) => fs.name === s.name);
+  //         return {
+  //           name: s.name,
+  //           xpGained: (s.xp || 0) - (firstSkill?.xp || 0),
+  //           levelGained: (s.level || 0) - (firstSkill?.level || 0),
+  //         };
+  //       });
+
+  //       const activitiesGained = last.activities.map((a) => {
+  //         const firstAct = first.activities.find((fa) => fa.name === a.name);
+  //         return {
+  //           name: a.name,
+  //           gained: firstAct ? (a.score || 0) - (firstAct.score || 0) : 0,
+  //         };
+  //       });
+
+  //       // Save to DailyGain collection
+  //       return this.dailyGainModel.findOneAndUpdate(
+  //         { username: player.username, date: dateKey },
+  //         {
+  //           username: player.username,
+  //           date: dateKey,
+  //           overallXpGained: overallexpGained,
+  //           skillsGained,
+  //           activitiesGained,
+  //         },
+  //         { upsert: true },
+  //       );
+  //     });
+
+  //     await Promise.all(processingPromises);
+
+  //     return {
+  //       success: true,
+  //       message: `Gains processed for all available members in ${groupName} for ${dateKey}`,
+  //     };
+  //   } catch (err: unknown) {
+  //     console.error('Group Save Error:', err);
+  //     const msg = err instanceof Error ? err.message : 'Unknown error';
+  //     return { success: false, message: 'Database error', error: msg };
+  //   }
+  // }
+
+  async getGainsForGroup(
+    period: string,
     groupName: string,
     date = new Date(),
   ): Promise<ServiceResponse> {
     try {
-      // 1. Find the group
+      // <--- ADDED THIS TRY
       const group = await this.groupModel.findOne({ name: groupName }).exec();
-      if (!group) return { success: false, message: 'Group not found' };
 
-      const { start, end } = getDayBounds(date);
-      const dateKey = start.toISOString().split('T')[0];
-
-      // 2. Get all usernames and fetch their Player documents from the DB
-      const usernames = group.players.map((p) => p.username);
-      const players = await this.playerModel
-        .find({ username: { $in: usernames } })
-        .exec();
-
-      if (players.length === 0) {
-        return { success: false, message: 'No players found in this group' };
+      if (!group) {
+        return {
+          success: false,
+          message: 'Group not found',
+        };
       }
 
-      // 3. Process all players in parallel using Promise.all
-      const processingPromises = players.map(async (player) => {
-        // Filter snapshots for this specific player
-        const dailySnapshot = player.snapshots.filter((s) => {
-          const time = new Date(s.timeStamp).getTime();
-          return time >= start.getTime() && time <= end.getTime();
-        });
+      const usernames = group.players.map((p) => p.username);
 
-        // Skip players who don't have enough data (prevents the whole group from failing)
-        if (dailySnapshot.length < 2) {
-          console.log(`Skipping ${player.username}: Not enough snapshots.`);
-          return;
-        }
+      let bounds: { start: Date; end: Date };
+      if (period === 'daily') bounds = getDayBounds(date);
+      else if (period === 'monthly') bounds = getMonthlyBounds(date);
+      else bounds = getWeeklyBounds(date);
 
-        // Sort snapshots
-        dailySnapshot.sort(
-          (a, b) =>
-            new Date(a.timeStamp).getTime() - new Date(b.timeStamp).getTime(),
-        );
+      const { start, end } = bounds;
 
-        const first = dailySnapshot[0];
-        const last = dailySnapshot[dailySnapshot.length - 1];
+      // DEBUG LOGS: Check these in your terminal!
+      console.log(`Checking ${period} gains for ${groupName}`);
+      console.log(`Start: ${start.toISOString()} | End: ${end.toISOString()}`);
 
-        // Calculate Gains
-        const overallexpGained = (last.overallXp || 0) - (first.overallXp || 0);
+      const results = await this.playerModel.aggregate<AggregationResult>([
+        { $match: { username: { $in: usernames } } },
+        {
+          $project: {
+            username: 1,
+            filteredSnapshots: {
+              $filter: {
+                input: '$snapshots',
+                as: 's',
+                cond: {
+                  $and: [
+                    { $gte: [{ $toDate: '$$s.timeStamp' }, start] },
+                    { $lte: [{ $toDate: '$$s.timeStamp' }, end] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        // This is the stage that usually causes "No players had enough snapshots"
+        { $match: { $expr: { $gte: [{ $size: '$filteredSnapshots' }, 2] } } },
+        {
+          $project: {
+            username: 1,
+            first: { $arrayElemAt: ['$filteredSnapshots', 0] },
+            last: { $arrayElemAt: ['$filteredSnapshots', -1] },
+          },
+        },
+      ]);
 
-        const skillsGained = last.skills.map((s) => {
-          const firstSkill = first.skills.find((fs) => fs.name === s.name);
+      if (!results || results.length === 0) {
+        return {
+          success: false,
+          message: `No players had enough snapshots between ${start.toLocaleDateString()} and ${end.toLocaleDateString()}.`,
+        };
+      }
+
+      const dateKey = start.toISOString().split('T')[0];
+      const savePromises = results.map((res: AggregationResult) => {
+        const overallXpGained =
+          (res.last.overallXp || 0) - (res.first.overallXp || 0);
+
+        const skillsGained = res.last.skills.map((s) => {
+          const firstSkill = res.first.skills.find((fs) => fs.name === s.name);
           return {
             name: s.name,
             xpGained: (s.xp || 0) - (firstSkill?.xp || 0),
@@ -365,38 +667,44 @@ export class AppService {
           };
         });
 
-        const activitiesGained = last.activities.map((a) => {
-          const firstAct = first.activities.find((fa) => fa.name === a.name);
+        const activitiesGained = res.last.activities.map((a) => {
+          const firstAct = res.first.activities.find(
+            (fa) => fa.name === a.name,
+          );
           return {
             name: a.name,
             gained: firstAct ? (a.score || 0) - (firstAct.score || 0) : 0,
           };
         });
 
-        // Save to DailyGain collection
-        return this.dailyGainModel.findOneAndUpdate(
-          { username: player.username, date: dateKey },
+        return this.GainsModel.findOneAndUpdate(
+          { username: res.username, date: dateKey, period: period },
           {
-            username: player.username,
+            username: res.username,
             date: dateKey,
-            overallXpGained: overallexpGained,
+            period: period,
+            overallXpGained,
             skillsGained,
             activitiesGained,
           },
-          { upsert: true },
+          { upsert: true, new: true },
         );
       });
 
-      await Promise.all(processingPromises);
+      await Promise.all(savePromises);
 
       return {
         success: true,
-        message: `Gains processed for all available members in ${groupName} for ${dateKey}`,
+        message: `Processed gains for ${results.length} members in ${groupName} (${period})`,
       };
     } catch (err: unknown) {
-      console.error('Group Save Error:', err);
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      return { success: false, message: 'Database error', error: msg };
+      // <--- THIS NOW HAS A MATCHING TRY
+      console.error('Group Aggregation Error:', err);
+      return {
+        success: false,
+        message: 'Database error',
+        error: err instanceof Error ? err.message : 'Unknown',
+      };
     }
   }
 }
