@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { AppService } from './app.service';
 import { HttpService } from '@nestjs/axios';
-import { Player } from './users/schemas/player.schema';
-import { Group } from './users/schemas/group.schema';
-import { Gains } from './users/schemas/gains.schema';
+import { Player } from './players/schemas/player.schema';
+import { Group } from './groups/schemas/group.schema';
+import { Gains } from './groups/schemas/gains.schema';
 
 describe('AppService', () => {
   let service: AppService;
