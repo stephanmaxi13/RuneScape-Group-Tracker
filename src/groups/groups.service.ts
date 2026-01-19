@@ -280,15 +280,18 @@ export class GroupService {
   }
   //Todo: I need to run to make sure that work
   //If it works then make it so that
-  //1. Make sure that the group as at least 2 members
-  //2. Configure this so that it takes in the flag for daily, weekly, monthly
-  //3. use that flag to then only grab gains documents with that flag
-  //4. Configure the output to be less hard coddes
-  //5. Set up the controllers to run this service
+  //1. Make sure that the group as at least 2 members --
+  //2. Configure this so that it takes in the flag for daily, weekly, monthly --
+  //3. use that flag to then only grab gains documents with that flag --
+  //4. Configure the output to be less hard coddes--
+  //5. Set up the controllers to run this service--
   //6. Set up Testing for the function
   //7. Then set it up for all skill and activities
   //8. Set up Testing for that
-  async getGroupRankings(groupName: string): Promise<ServiceResponse> {
+  async getGroupRankings(
+    groupName: string,
+    period: string,
+  ): Promise<ServiceResponse> {
     // Awaits need to be inside a try-catch block to handle the code not crashing if the function does not work
     try {
       // get the group from the groupname
@@ -304,43 +307,43 @@ export class GroupService {
       const groupMembers = group.players.map((a) => a.username);
       try {
         //Get the gains record for the group members
-        //Todo: Need to make sure that if the player does not have a gainModel then it need to just get the name and default the overall exp to 0
+        //Todo: Need to make sure that if the player does not have a gainModel then it need to just get the name and default the overall exp to 0--
         const playerGains: GainsDocument[] = await this.GainsModel.find({
           username: { $in: groupMembers },
+          period: period,
         });
-        if (!group) {
+        if (groupMembers.length < 2) {
           return {
             success: false,
-            message: 'No Group Members',
+            message: 'need at least 2 group members',
           };
         }
-        //Map the the PLayerRanking object to have the username, exp
-        //Todo: create the player rank interface for type safty
-        const PlayerRanking: any[] = playerGains.map((s) => {
-          return {
-            user: s.username,
-            exp: s.overallXpGained,
-          };
-        });
-        // sort the Player ranking array
-        PlayerRanking.sort((a, b) => a.exp - b.exp);
 
+        // sort the Player ranking array
+        playerGains.sort((a, b) => b.overallXpGained - a.overallXpGained);
+
+        const ranking = playerGains.map((player, index) => {
+          return ` ${index + 1}. ${player.username}(${player.overallXpGained.toLocaleString()} XP) `;
+        });
+        const rankMessage = ranking.join(',');
+        console.log(rankMessage);
         return {
           success: true,
-          message: `In First Place for the week is  ${PlayerRanking[0].user} and in second place is ${PlayerRanking[1].user}}.`,
+          message: rankMessage,
         };
       } catch (error: unknown) {
         return {
           success: false,
           message: 'Database error',
-          error: error instanceof Error ? error.message : 'Unknown',
+          error:
+            error instanceof Error ? error.message : 'GainsDocument not found',
         };
       }
     } catch (error: unknown) {
       return {
         success: false,
         message: 'Database error',
-        error: error instanceof Error ? error.message : 'Unknown',
+        error: error instanceof Error ? error.message : 'Group Nopt Found',
       };
     }
   }

@@ -32,4 +32,11 @@ export class GroupsController {
   ) {
     return this.groupsService.AddMembersToGroup(groupName, body.groupMembers);
   }
+  @Get('group-rankings')
+  getGroupRankings(
+    @Query('period') period: string,
+    @Query('groupName') groupName: string,
+  ) {
+    return this.groupsService.getGroupRankings(groupName, period);
+  }
 }
