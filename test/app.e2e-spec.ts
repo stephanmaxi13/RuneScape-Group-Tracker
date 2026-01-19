@@ -33,8 +33,8 @@ describe('AppController (e2e)', () => {
 
   it('/ (GET)', () => {
     return request(app.getHttpServer())
-      .get('/get-group-id')
-      .query({ groupName: 'TestGroup' })
+      .get('/get-gains')
+      .query({ groupName: 'TestGroup', period: 'weekly' })
       .expect(200)
       .expect((res) => {
         if (res.status === 404)
