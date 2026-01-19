@@ -278,4 +278,70 @@ export class GroupService {
       };
     }
   }
+  //Todo: I need to run to make sure that work
+  //If it works then make it so that
+  //1. Make sure that the group as at least 2 members
+  //2. Configure this so that it takes in the flag for daily, weekly, monthly
+  //3. use that flag to then only grab gains documents with that flag
+  //4. Configure the output to be less hard coddes
+  //5. Set up the controllers to run this service
+  //6. Set up Testing for the function
+  //7. Then set it up for all skill and activities
+  //8. Set up Testing for that
+  async getGroupRankings(groupName: string): Promise<ServiceResponse> {
+    // Awaits need to be inside a try-catch block to handle the code not crashing if the function does not work
+    try {
+      // get the group from the groupname
+      const group = await this.groupModel.findOne({ name: groupName });
+
+      if (!group) {
+        return {
+          success: false,
+          message: 'Group not found',
+        };
+      }
+      //Map the groupMembers
+      const groupMembers = group.players.map((a) => a.username);
+      try {
+        //Get the gains record for the group members
+        //Todo: Need to make sure that if the player does not have a gainModel then it need to just get the name and default the overall exp to 0
+        const playerGains: GainsDocument[] = await this.GainsModel.find({
+          username: { $in: groupMembers },
+        });
+        if (!group) {
+          return {
+            success: false,
+            message: 'No Group Members',
+          };
+        }
+        //Map the the PLayerRanking object to have the username, exp
+        //Todo: create the player rank interface for type safty
+        const PlayerRanking: any[] = playerGains.map((s) => {
+          return {
+            user: s.username,
+            exp: s.overallXpGained,
+          };
+        });
+        // sort the Player ranking array
+        PlayerRanking.sort((a, b) => a.exp - b.exp);
+
+        return {
+          success: true,
+          message: `In First Place for the week is  ${PlayerRanking[0].user} and in second place is ${PlayerRanking[1].user}}.`,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          message: 'Database error',
+          error: error instanceof Error ? error.message : 'Unknown',
+        };
+      }
+    } catch (error: unknown) {
+      return {
+        success: false,
+        message: 'Database error',
+        error: error instanceof Error ? error.message : 'Unknown',
+      };
+    }
+  }
 }
