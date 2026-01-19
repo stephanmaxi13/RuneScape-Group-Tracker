@@ -5,9 +5,10 @@ import { HttpService } from '@nestjs/axios';
 import { Player } from './players/schemas/player.schema';
 import { Group } from './groups/schemas/group.schema';
 import { Gains } from './groups/schemas/gains.schema';
+import { PlayersService } from './players/players.service';
 
-describe('AppService', () => {
-  let service: AppService;
+describe('PlayersService', () => {
+  let service: PlayersService;
 
   // 1. Create a mock for the HttpService
   const mockHttpService = {
@@ -50,7 +51,7 @@ describe('AppService', () => {
       ],
     }).compile();
 
-    service = module.get<AppService>(AppService);
+    service = module.get<PlayersService>(PlayersService);
   });
 
   it('should be defined', () => {
