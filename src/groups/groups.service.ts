@@ -285,7 +285,7 @@ export class GroupService {
   //3. use that flag to then only grab gains documents with that flag --
   //4. Configure the output to be less hard coddes--
   //5. Set up the controllers to run this service--
-  //6. Set up Testing for the function
+  //6. Set up Testing for the function xxx
   //7. Then set it up for all skill and activities
   //8. Set up Testing for that
   async getGroupRankings(
