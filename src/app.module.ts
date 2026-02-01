@@ -5,6 +5,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlayerModule } from './players/players.module';
 import { GroupModule } from './groups/groups.module';
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     //Load the .env file and makes variable availabel via ConfigSerce
@@ -23,6 +24,7 @@ import { GroupModule } from './groups/groups.module';
     }),
     PlayerModule,
     GroupModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController], //Handles HTTP request
   providers: [],

@@ -286,7 +286,7 @@ export class GroupService {
   //4. Configure the output to be less hard coddes--
   //5. Set up the controllers to run this service--
   //6. Set up Testing for the function xxx
-  //7. Then set it up for all skill and activities
+  //7. Then set it up for all skill and activities --half done need to do activites
   //8. Set up Testing for that
   async getGroupRankings(
     groupName: string,
@@ -322,14 +322,29 @@ export class GroupService {
         // sort the Player ranking array
         playerGains.sort((a, b) => b.overallXpGained - a.overallXpGained);
 
-        const ranking = playerGains.map((player, index) => {
-          return ` ${index + 1}. ${player.username}(${player.overallXpGained.toLocaleString()} XP) `;
+        // 3. Build the detailed message
+        const rankingMessages = playerGains.map((player, index) => {
+          // Sort the skills array for THIS player by xpGained
+          const topSkills = [...player.skillsGained]
+            .sort((a, b) => b.xp - a.xp)
+            .slice(0, 5) // Get top 5
+            .filter((s) => s.xp > 0) // Only show skills with actual progress
+            .map((s) => `${s.name}: +${s.xp.toLocaleString()}`);
+
+          const skillString =
+            topSkills.length > 0
+              ? ` (Top Skills: ${topSkills.join(', ')})`
+              : ' (No skill gains)';
+
+          return `${index + 1}. ${player.username}: ${player.overallXpGained.toLocaleString()} XP${skillString}`;
         });
-        const rankMessage = ranking.join(',');
-        console.log(rankMessage);
+
+        const finalMessage = rankingMessages.join('\n');
+        console.log(finalMessage);
+
         return {
           success: true,
-          message: rankMessage,
+          message: finalMessage,
         };
       } catch (error: unknown) {
         return {
