@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PlayerModule } from './players/players.module';
 import { GroupModule } from './groups/groups.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CommonModule } from '@runescape-group-tracker/common';
 @Module({
   imports: [
     //Load the .env file and makes variable availabel via ConfigSerce
@@ -25,6 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PlayerModule,
     GroupModule,
     ScheduleModule.forRoot(),
+    CommonModule,
   ],
   controllers: [AppController], //Handles HTTP request
   providers: [],
