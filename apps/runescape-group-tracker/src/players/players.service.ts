@@ -3,19 +3,19 @@ import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
-import { Player, PlayerDocument } from 'libs/common/src/schemas/player.schema';
+import { ServiceResponse } from '../groups/groups.service';
+import { AggregationResult } from '../groups/groups.service';
 import {
+  Player,
+  PlayerDocument,
+  Gains,
+  GainsDocument,
   OSRS_SKILLS,
   OSRS_ACTIVITIES,
-} from '../../../../libs/common/src/constants/osrs.constants';
-import { ServiceResponse } from '../groups/groups.service';
-import {
   getMonthlyBounds,
   getWeeklyBounds,
   getDayBounds,
-} from 'libs/common/src/utils/date.utils';
-import { Gains, GainsDocument } from 'libs/common/src/schemas/gains.schema';
-import { AggregationResult } from '../groups/groups.service';
+} from '@runescape-group-tracker/common';
 
 // Define these interfaces so TypeScript knows what the data looks like
 interface RawSkill {

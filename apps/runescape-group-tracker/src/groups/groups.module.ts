@@ -1,9 +1,15 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Group, GroupSchema } from 'libs/common/src/schemas/group.schema';
+import {
+  Group,
+  GroupSchema,
+} from '@runescape-group-tracker/common/schemas/group.schema';
 import { GroupService } from './groups.service';
-import { Gains, GainsSchema } from 'libs/common/src/schemas/gains.schema';
+import {
+  Gains,
+  GainsSchema,
+} from '@runescape-group-tracker/common/schemas/gains.schema';
 import { PlayerModule } from 'apps/runescape-group-tracker/src/players/players.module';
 import { GroupsController } from './groups.controller';
 

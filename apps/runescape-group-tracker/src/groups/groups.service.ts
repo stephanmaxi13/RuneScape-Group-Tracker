@@ -2,15 +2,21 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Group, GroupDocument } from 'libs/common/src/schemas/group.schema';
-import { Gains, GainsDocument } from 'libs/common/src/schemas/gains.schema';
-import { PlayerDocument } from 'libs/common/src/schemas/player.schema';
+import {
+  Group,
+  GroupDocument,
+} from '@runescape-group-tracker/common/schemas/group.schema';
+import {
+  Gains,
+  GainsDocument,
+} from '@runescape-group-tracker/common/schemas/gains.schema';
+import { PlayerDocument } from '@runescape-group-tracker/common/schemas/player.schema';
 import { PlayersService } from '../players/players.service';
 import {
   getDayBounds,
   getMonthlyBounds,
   getWeeklyBounds,
-} from 'libs/common/src/utils/date.utils';
+} from '@runescape-group-tracker/common/utils/date.utils';
 
 interface SkillSnapshot {
   name: string;

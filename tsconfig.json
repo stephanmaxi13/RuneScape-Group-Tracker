@@ -22,10 +22,10 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "runescape-group-tracker/common": [
+      "@runescape-group-tracker/common": [
         "libs/common/src"
       ],
-      "runescape-group-tracker/common/*": [
+      "@runescape-group-tracker/common/*": [
         "libs/common/src/*"
       ]
     }
