@@ -5,8 +5,8 @@ import { DiscordBotService } from './discord-bot.service';
 export class DiscordBotController {
   constructor(private readonly discordBotService: DiscordBotService) {}
 
-  @Get()
+  @Get('ping-check') // Access via http://localhost:3000/ping-check
   getHello(): string {
-    return this.discordBotService.getHello();
+    return this.discordBotService.getHelloMessage();
   }
 }
