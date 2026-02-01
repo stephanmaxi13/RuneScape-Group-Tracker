@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { HttpService } from '@nestjs/axios';
 import { PlayersService } from './players.service';
-import { Player } from './schemas/player.schema';
-import { Gains } from '../groups/schemas/gains.schema';
+import { Player } from 'libs/common/src/schemas/player.schema';
+import { Gains } from 'libs/common/src/schemas/gains.schema';
 
 describe('PlayersService', () => {
   let service: PlayersService;

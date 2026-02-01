@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { SkillSchema, Skill } from '../../players/schemas/skill.schema'; // Import your existing ones
+import { SkillSchema, Skill } from 'libs/common/src/schemas/skill.schema'; // Import your existing ones
 import {
   ActivitySchema,
   Activities,
-} from '../../players/schemas/activities.schema';
+} from 'libs/common/src/schemas/activities.schema';
 
 export type GainsDocument = HydratedDocument<Gains>;
 

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Player, PlayerSchema } from '../../players/schemas/player.schema';
+import { Player, PlayerSchema } from 'libs/common/src/schemas/player.schema';
 
 export type GroupDocument = HydratedDocument<Group>;
 

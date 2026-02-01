@@ -3,18 +3,18 @@ import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
-import { Player, PlayerDocument } from './schemas/player.schema';
+import { Player, PlayerDocument } from 'libs/common/src/schemas/player.schema';
 import {
   OSRS_SKILLS,
   OSRS_ACTIVITIES,
-} from '../common/constants/osrs.constants';
+} from '../../../../libs/common/src/constants/osrs.constants';
 import { ServiceResponse } from '../groups/groups.service';
 import {
   getMonthlyBounds,
   getWeeklyBounds,
   getDayBounds,
-} from 'src/common/utils/date.utils';
-import { Gains, GainsDocument } from 'src/groups/schemas/gains.schema';
+} from 'libs/common/src/utils/date.utils';
+import { Gains, GainsDocument } from 'libs/common/src/schemas/gains.schema';
 import { AggregationResult } from '../groups/groups.service';
 
 // Define these interfaces so TypeScript knows what the data looks like
